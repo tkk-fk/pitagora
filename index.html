@@ -2,351 +2,931 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>ピタゴラスイッチ</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Segoe UI',Arial,sans-serif; background:#1a1a2e; height:100vh; display:flex; flex-direction:column; overflow:hidden; user-select:none; }
-#toolbar { background:#16213e; padding:6px 10px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; border-bottom:2px solid #0f3460; z-index:10; min-height:48px; }
-#toolbar h1 { color:#e94560; font-size:1rem; font-weight:900; letter-spacing:1px; white-space:nowrap; }
-.tbtn { padding:4px 10px; border:2px solid #0f3460; border-radius:7px; background:#0f3460; color:#bbb; cursor:pointer; font-size:0.75rem; font-weight:700; transition:all 0.1s; white-space:nowrap; }
-.tbtn:hover { background:#1a4a8a; color:white; }
-.tbtn.active { background:#e94560; border-color:#e94560; color:white; }
-#startBtn { background:#00b894; border-color:#00b894; color:white; }
-#startBtn.stop { background:#e94560; border-color:#e94560; }
-#clearBtn { background:#636e72; border-color:#636e72; color:white; }
-#levelBadge { display:flex; align-items:center; gap:4px; background:linear-gradient(135deg,#f9ca24,#f0932b); border-radius:8px; padding:3px 10px; font-weight:900; font-size:0.8rem; color:#1a1a2e; white-space:nowrap; }
-#ballCountWrap { display:flex; align-items:center; gap:3px; color:#999; font-size:0.74rem; font-weight:700; }
-#ballCount { background:#0f3460; border:2px solid #0f3460; color:white; border-radius:5px; padding:3px 4px; font-size:0.74rem; cursor:pointer; }
-#hint { margin-left:auto; color:#555; font-size:0.68rem; max-width:150px; text-align:right; line-height:1.4; }
-#canvas { flex:1; display:block; cursor:crosshair; touch-action:none; }
-.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; z-index:100; }
-.overlay.show { display:flex; }
-.obox { background:#16213e; border-radius:18px; padding:30px 48px; text-align:center; color:white; animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1); }
-@keyframes popIn { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
-.oicon{font-size:3.2rem;} .otitle{font-size:1.7rem;font-weight:900;margin:8px 0 4px;} .osub{color:#aaa;font-size:0.88rem;margin-bottom:8px;}
-.onext{font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#f9ca24,#f0932b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:18px;}
-.obtn{color:white;border:none;padding:10px 28px;border-radius:9px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:transform 0.1s;margin:4px;}
-.obtn:hover{transform:scale(1.05);} .obtn-green{background:#00b894;} .obtn-red{background:#e94560;} .obtn-gold{background:linear-gradient(135deg,#f9ca24,#f0932b);color:#1a1a2e;}
-#subHint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(45,52,54,0.95);color:white;padding:5px 16px;border-radius:18px;font-size:0.8rem;font-weight:700;pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:50;}
-#subHint.show{opacity:1;}
-#flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:200;transition:opacity 0.12s;}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #1a1a2e;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+body { display: flex; flex-direction: column; }
+
+/* ─── TOOLBAR ─────────────────────────────── */
+#toolbar {
+  background: #16213e;
+  border-bottom: 2px solid #0f3460;
+  flex-shrink: 0;
+}
+
+/* Top row: title / level / spacer / hint / count / start / clear */
+#tb-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px 4px;
+  min-height: 46px;
+}
+
+#toolbar h1 {
+  color: #e94560;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#levelBadge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(135deg, #f9ca24, #f0932b);
+  border-radius: 8px;
+  padding: 3px 9px;
+  font-weight: 900;
+  font-size: 0.78rem;
+  color: #1a1a2e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#lvLabel { font-size: 0.6rem; opacity: 0.75; }
+.spacer  { flex: 1; min-width: 4px; }
+
+/* Hint: only visible on wider screens */
+#hint {
+  display: none;
+  color: #555;
+  font-size: 0.63rem;
+  max-width: 120px;
+  text-align: right;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) { #hint { display: block; } }
+
+#ballCountWrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #999;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+#ballCount {
+  background: #0f3460;
+  border: 2px solid #0f3460;
+  color: white;
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 0.72rem;
+  height: 36px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.top-btn {
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+  transition: transform 0.1s, filter 0.1s;
+  touch-action: manipulation;
+}
+.top-btn:active { transform: scale(0.94); filter: brightness(0.88); }
+#startBtn { background: #00b894; }
+#startBtn.stop { background: #e94560; }
+#clearBtn { background: #4a5568; padding: 0 10px; }
+
+/* Tool strip: horizontally scrollable */
+#tb-tools {
+  display: flex;
+  gap: 4px;
+  padding: 3px 8px 7px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+#tb-tools::-webkit-scrollbar { display: none; }
+
+.tbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 48px;
+  min-height: 46px;
+  padding: 4px 8px;
+  border: 2px solid #0f3460;
+  border-radius: 9px;
+  background: #0f3460;
+  color: #aaa;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
+  touch-action: manipulation;
+}
+.tbtn .icon { font-size: 1.05rem; line-height: 1; }
+.tbtn .lbl  { font-size: 0.57rem; font-weight: 700; opacity: 0.8; }
+.tbtn:active { transform: scale(0.93); }
+.tbtn:hover  { background: #1a4a8a; color: white; }
+.tbtn.active { background: #e94560; border-color: #e94560; color: white; }
+.tbtn.active .lbl { opacity: 1; }
+
+/* ─── CANVAS ──────────────────────────────── */
+#canvas {
+  flex: 1;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── OVERLAYS ────────────────────────────── */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.overlay.show { display: flex; }
+.obox {
+  background: #16213e;
+  border-radius: 18px;
+  padding: 28px 36px;
+  text-align: center;
+  color: white;
+  animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: 340px;
+  width: 100%;
+}
+@keyframes popIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.oicon  { font-size: 2.8rem; }
+.otitle { font-size: 1.6rem; font-weight: 900; margin: 8px 0 4px; }
+.osub   { color: #aaa; font-size: 0.85rem; margin-bottom: 8px; }
+.onext  {
+  font-size: 1rem; font-weight: 900; margin-bottom: 16px;
+  background: linear-gradient(135deg,#f9ca24,#f0932b);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.obtn {
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: transform 0.1s;
+  margin: 4px; min-height: 44px;
+  color: white;
+  touch-action: manipulation;
+}
+.obtn:active { transform: scale(0.95); }
+.obtn-green { background: #00b894; }
+.obtn-red   { background: #e94560; }
+.obtn-gold  { background: linear-gradient(135deg,#f9ca24,#f0932b); color: #1a1a2e; }
+
+/* ─── TOAST / FLASH ───────────────────────── */
+#subHint {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30,35,38,0.96);
+  color: white;
+  padding: 7px 20px;
+  border-radius: 20px;
+  font-size: 0.8rem; font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 50;
+  white-space: nowrap;
+  max-width: 88vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#subHint.show { opacity: 1; }
+
+#flash {
+  position: fixed; inset: 0;
+  background: white; opacity: 0;
+  pointer-events: none; z-index: 200;
+  transition: opacity 0.12s;
+}
 </style>
 </head>
 <body>
-<div id="toolbar">
-  <h1>🎯 ピタゴラ</h1>
-  <div id="levelBadge">⭐ Lv.<span id="lvNum">1</span>&nbsp;<span id="lvLabel" style="font-size:0.65rem;opacity:0.75"></span></div>
-  <button class="tbtn active" id="t_ramp"     onclick="setTool('ramp')">📐 坂道</button>
-  <button class="tbtn"        id="t_platform" onclick="setTool('platform')">➖ 棚</button>
-  <button class="tbtn"        id="t_spring"   onclick="setTool('spring')">🌀 バネ</button>
-  <button class="tbtn"        id="t_spinner"  onclick="setTool('spinner')">🔄 回転板</button>
-  <button class="tbtn"        id="t_tunnel"   onclick="setTool('tunnel')">🕳 トンネル</button>
 
-  <button class="tbtn"        id="t_wind"     onclick="setTool('wind')">💨 風</button>
-  <button class="tbtn"        id="t_erase"    onclick="setTool('erase')">🧹 消す</button>
-  <div id="ballCountWrap">🔴×<select id="ballCount"><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
-  <button class="tbtn" id="startBtn" onclick="toggleSim()">▶ スタート</button>
-  <button class="tbtn" id="clearBtn" onclick="clearAll()">🗑 全消去</button>
-  <div id="hint">ドラッグで配置<br>右クリック→START位置</div>
+<div id="toolbar">
+  <!-- Top row -->
+  <div id="tb-top">
+    <h1>🎯 ピタゴラ</h1>
+    <div id="levelBadge">⭐&nbsp;Lv.<span id="lvNum">1</span>&nbsp;<span id="lvLabel"></span></div>
+    <div class="spacer"></div>
+    <div id="hint">ドラッグで配置<br>📍タップで出発点</div>
+    <div id="ballCountWrap">🔴×<select id="ballCount">
+      <option>1</option><option>2</option><option>3</option><option>5</option>
+    </select></div>
+    <button class="top-btn" id="startBtn" onclick="toggleSim()">▶ GO</button>
+    <button class="top-btn" id="clearBtn" onclick="clearAll()">🗑</button>
+  </div>
+
+  <!-- Tool strip -->
+  <div id="tb-tools">
+    <button class="tbtn active" id="t_ramp"     onclick="setTool('ramp')">    <span class="icon">📐</span><span class="lbl">坂道</span></button>
+    <button class="tbtn"        id="t_platform" onclick="setTool('platform')"><span class="icon">➖</span><span class="lbl">棚</span></button>
+    <button class="tbtn"        id="t_spring"   onclick="setTool('spring')">  <span class="icon">🌀</span><span class="lbl">バネ</span></button>
+    <button class="tbtn"        id="t_spinner"  onclick="setTool('spinner')"> <span class="icon">🔄</span><span class="lbl">回転板</span></button>
+    <button class="tbtn"        id="t_tunnel"   onclick="setTool('tunnel')">  <span class="icon">🕳</span><span class="lbl">BIG!</span></button>
+    <button class="tbtn"        id="t_wind"     onclick="setTool('wind')">    <span class="icon">💨</span><span class="lbl">風</span></button>
+    <button class="tbtn"        id="t_setstart" onclick="setTool('setstart')"><span class="icon">📍</span><span class="lbl">出発点</span></button>
+    <button class="tbtn"        id="t_erase"    onclick="setTool('erase')">   <span class="icon">🧹</span><span class="lbl">消す</span></button>
+  </div>
 </div>
+
 <canvas id="canvas"></canvas>
 <div id="subHint"></div>
 <div id="flash"></div>
-<div class="overlay" id="goalOverlay"><div class="obox"><div class="oicon">🎉</div><div class="otitle">ゴール！</div><div class="osub" id="goalSub"></div><div class="onext" id="goalNext"></div><button class="obtn obtn-green" id="goalBtn" onclick="nextLevel()">次のレベルへ ▶</button></div></div>
-<div class="overlay" id="failOverlay"><div class="obox" style="border:3px solid #e94560"><div class="oicon">😢</div><div class="otitle">落ちてしまった…</div><div class="osub">もう一度チャレンジ！</div><button class="obtn obtn-red" onclick="closeFail()">リトライ</button></div></div>
-<div class="overlay" id="clearOverlay"><div class="obox" style="border:3px solid #f9ca24"><div class="oicon">🏆</div><div class="otitle" style="color:#f9ca24">全レベルクリア！</div><div class="osub">すべてのゴールを制覇しました！</div><button class="obtn obtn-gold" onclick="restartAll()">最初からやり直す</button></div></div>
+
+<!-- Overlays -->
+<div class="overlay" id="goalOverlay">
+  <div class="obox">
+    <div class="oicon">🎉</div>
+    <div class="otitle">ゴール！</div>
+    <div class="osub" id="goalSub"></div>
+    <div class="onext" id="goalNext"></div>
+    <button class="obtn obtn-green" id="goalBtn" onclick="nextLevel()">次のレベルへ ▶</button>
+  </div>
+</div>
+<div class="overlay" id="failOverlay">
+  <div class="obox" style="border:3px solid #e94560">
+    <div class="oicon">😢</div>
+    <div class="otitle">落ちてしまった…</div>
+    <div class="osub">もう一度チャレンジ！</div>
+    <button class="obtn obtn-red" onclick="closeFail()">リトライ</button>
+  </div>
+</div>
+<div class="overlay" id="clearOverlay">
+  <div class="obox" style="border:3px solid #f9ca24">
+    <div class="oicon">🏆</div>
+    <div class="otitle" style="color:#f9ca24">全レベルクリア！</div>
+    <div class="osub">すべてのゴールを制覇しました！</div>
+    <button class="obtn obtn-gold" onclick="restartAll()">最初からやり直す</button>
+  </div>
+</div>
+
 <script>
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
-let W=0,H=0;
-function resize(){const r=canvas.getBoundingClientRect();W=canvas.width=Math.floor(r.width)||window.innerWidth;H=canvas.height=Math.floor(r.height)||(window.innerHeight-48);goalPos=goalForLevel(currentLevel);if(!simRunning)draw();}
-window.addEventListener('resize',resize);
+// ─── Canvas & DPR setup ────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let W = 0, H = 0, DPR = 1;
 
-const LEVELS=[
-  {rx:0.85,ry:0.85,label:'右下'},{rx:0.5,ry:0.1,label:'上中央'},
-  {rx:0.1,ry:0.85,label:'左下'},{rx:0.85,ry:0.1,label:'右上'},
-  {rx:0.1,ry:0.5,label:'左中央'},{rx:0.5,ry:0.85,label:'真下中央'},
-  {rx:0.5,ry:0.5,label:'中央'},{rx:0.85,ry:0.5,label:'右中央'},
-];
-let currentLevel=0;
-function goalForLevel(lv){const d=LEVELS[lv];return{x:Math.round(W*d.rx),y:Math.round(H*d.ry)};}
+// Detect touch device for performance tuning
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+// On mobile, cap DPR at 2 and reduce heavy effects
+const MAX_DPR     = isTouchDevice ? 2 : 3;
+const SHADOW_MULT = isTouchDevice ? 0.4 : 1.0;
 
-let tool='ramp',objects=[],startPos={x:100,y:80},goalPos={x:500,y:400};
-let balls=[],simRunning=false,rafId=null;
-let dragging=false,dp1=null,dp2=null,particles=[],frameCount=0;
-
-const BASE_BALL_R=12,GRAVITY=0.35,FRICTION=0.993,BOUNCE=0.42,SUBSTEPS=6;
-const MAX_BALL_R=48; // 最大サイズ
-
-function updateLevelUI(){document.getElementById('lvNum').textContent=currentLevel+1;document.getElementById('lvLabel').textContent=LEVELS[currentLevel]?.label||'';}
-function nextLevel(){document.getElementById('goalOverlay').classList.remove('show');currentLevel++;if(currentLevel>=LEVELS.length){document.getElementById('clearOverlay').classList.add('show');return;}flashScreen(()=>{objects=[];setSubHint('');goalPos=goalForLevel(currentLevel);updateLevelUI();draw();});}
-function restartAll(){document.getElementById('clearOverlay').classList.remove('show');currentLevel=0;objects=[];setSubHint('');goalPos=goalForLevel(0);updateLevelUI();draw();}
-function closeFail(){document.getElementById('failOverlay').classList.remove('show');draw();}
-function flashScreen(cb){const el=document.getElementById('flash');el.style.opacity='1';setTimeout(()=>{el.style.opacity='0';if(cb)cb();},140);}
-function setSubHint(msg){const el=document.getElementById('subHint');el.textContent=msg;el.classList.toggle('show',!!msg);}
-
-function setTool(t){
-  tool=t;
-  document.querySelectorAll('.tbtn[id^=t_]').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('t_'+t);if(el)el.classList.add('active');
-  const labels={ramp:'ドラッグで坂道',platform:'ドラッグで棚',spring:'クリックで設置',spinner:'クリックで設置',tunnel:'ドラッグでトンネルを配置（くぐると玉が大きくなる）',wind:'ドラッグで範囲・向き指定',erase:'クリックで削除'};
-  document.getElementById('hint').innerHTML=(labels[t]||'')+'<br>右クリック→START位置';
+let toastTimer = null;
+function setSubHint(msg, duration = 0) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('subHint');
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
+  if (msg && duration > 0) toastTimer = setTimeout(() => setSubHint(''), duration);
+}
+function vibrate(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e){}
+}
+function flashScreen(cb) {
+  const el = document.getElementById('flash');
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; if (cb) cb(); }, 140);
 }
 
-function toggleSim(){simRunning?stopSim():startSim();}
-function startSim(){
-  const count=parseInt(document.getElementById('ballCount').value)||1;
-  balls=[];
-  for(let i=0;i<count;i++)balls.push({x:startPos.x,y:startPos.y-i*(BASE_BALL_R*2+4),vx:1.5,vy:0,r:BASE_BALL_R});
-  simRunning=true;document.getElementById('startBtn').textContent='⏹ ストップ';document.getElementById('startBtn').classList.add('stop');loop();
-}
-function stopSim(){simRunning=false;balls=[];if(rafId)cancelAnimationFrame(rafId);rafId=null;document.getElementById('startBtn').textContent='▶ スタート';document.getElementById('startBtn').classList.remove('stop');draw();}
-function clearAll(){stopSim();objects=[];setSubHint('');draw();}
-function loop(){if(!simRunning)return;frameCount++;updateAll();draw();rafId=requestAnimationFrame(loop);}
-
-function updateAll(){
-  let anyGoal=false;
-  for(let bi=balls.length-1;bi>=0;bi--){
-    const b=balls[bi];if(!b)continue;
-    for(let step=0;step<SUBSTEPS;step++){
-      const dt=1/SUBSTEPS;
-      b.vy+=GRAVITY*dt;b.vx*=Math.pow(FRICTION,dt);b.vy*=Math.pow(FRICTION,dt);
-      b.x+=b.vx*dt;b.y+=b.vy*dt;
-      if(b.x-b.r<0){b.x=b.r;b.vx=Math.abs(b.vx)*BOUNCE;}
-      if(b.x+b.r>W){b.x=W-b.r;b.vx=-Math.abs(b.vx)*BOUNCE;}
-      if(b.y>H+80){balls.splice(bi,1);break;}
-      for(const obj of objects){
-        if     (obj.type==='ramp')     collideSegR(b,obj.x1,obj.y1,obj.x2,obj.y2,b.r);
-        else if(obj.type==='platform') collideSegR(b,obj.x1,obj.y1,obj.x2,obj.y1,b.r);
-        else if(obj.type==='spring')   collideSpring(b,obj.x,obj.y);
-        else if(obj.type==='spinner')  collideSpinner(b,obj);
-        else if(obj.type==='tunnel')   collideTunnel(b,obj);
-        else if(obj.type==='wind')     applyWind(b,obj);
-      }
-      const goalR=30+Math.max(0,b.r-BASE_BALL_R)*0.5; // 玉が大きいほどゴール判定も少し広く
-      const dx=b.x-goalPos.x,dy=b.y-goalPos.y;
-      if(dx*dx+dy*dy<goalR*goalR){anyGoal=true;break;}
-    }
-  }
-  if(anyGoal){endSim(true);return;}
-  if(balls.length===0)endSim(false);
-}
-
-function collideSegR(b,x1,y1,x2,y2,R){
-  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);if(len<1)return;
-  const ux=dx/len,uy=dy/len;let nx=-uy,ny=ux;if(ny>0){nx=-nx;ny=-ny;}
-  const bx=b.x-x1,by=b.y-y1,t=bx*ux+by*uy;
-  if(t<-R||t>len+R)return;
-  const tc=Math.max(0,Math.min(len,t)),cx=x1+tc*ux,cy=y1+tc*uy;
-  const ex=b.x-cx,ey=b.y-cy,ed=Math.sqrt(ex*ex+ey*ey);
-  if(ed<R&&ed>0.001){
-    const pen=R-ed,enx=ex/ed,eny=ey/ed;
-    if(enx*nx+eny*ny>0){
-      b.x+=enx*pen;b.y+=eny*pen;
-      const vn=b.vx*enx+b.vy*eny;
-      if(vn<0){b.vx-=(1+BOUNCE)*vn*enx;b.vy-=(1+BOUNCE)*vn*eny;const vt=b.vx*ux+b.vy*uy;b.vx-=0.04*vt*ux;b.vy-=0.04*vt*uy;}
-    }
-  }
-}
-function collideSpring(b,sx,sy){
-  const R=b.r;
-  const topY=sy-28,cx=Math.max(sx-16,Math.min(sx+16,b.x)),dx=b.x-cx,dy=b.y-topY;
-  if(dx*dx+dy*dy<(R+6)*(R+6)&&b.vy>-2){b.y=topY-R-1;b.vy=-8.5;}
-}
-function collideSpinner(b,obj){
-  const R=b.r;
-  const dx=b.x-obj.x,dy=b.y-obj.y,dist=Math.sqrt(dx*dx+dy*dy),SR=obj.r||22;
-  if(dist<R+SR&&dist>0.001){const nx=dx/dist,ny=dy/dist;b.x=obj.x+nx*(R+SR+1);b.y=obj.y+ny*(R+SR+1);const spd=Math.sqrt(b.vx*b.vx+b.vy*b.vy);b.vx=-ny*spd*1.4;b.vy=nx*spd*1.4;if(b.vy>0)b.vy=-Math.abs(b.vy);}
-}
-
-// 🕳 トンネル: くぐると玉が大きくなる
-function collideTunnel(b,obj){
-  const tx1=Math.min(obj.x1,obj.x2), tx2=Math.max(obj.x1,obj.x2);
-  const ty=obj.y;
-  const BASE_TH=30; // 初期トンネル半径
-  // トンネル内にいるか
-  const inX=b.x>tx1&&b.x<tx2;
-  const inY=Math.abs(b.y-ty)<BASE_TH+b.r+4;
-  if(inX&&inY){
-    // 玉をトンネル中央に誘導（Y方向）
-    const dy=b.y-ty;
-    b.y+=(-dy)*0.08; // 中心に引き寄せる
-    b.vy*=0.85;      // Y速度を減衰して安定させる
-    // X方向の速度を維持・補助（止まったら少し押す）
-    if(Math.abs(b.vx)<1.0) b.vx=(b.vx>=0?1:-1)*1.5;
-    // 大きくなる
-    if(b.r<MAX_BALL_R){
-      b.r=Math.min(MAX_BALL_R,b.r+0.2);
-      if(Math.random()<0.25) spawnParticles(b.x,b.y,'#a29bfe',2);
-    }
-  }
-}
-
-function applyWind(b,obj){
-  const x1=Math.min(obj.x1,obj.x2),y1=Math.min(obj.y1,obj.y2),x2=Math.max(obj.x1,obj.x2),y2=Math.max(obj.y1,obj.y2);
-  if(b.x>x1&&b.x<x2&&b.y>y1&&b.y<y2){b.vx+=obj.fx*0.15;b.vy+=obj.fy*0.15;}
-}
-
-function spawnParticles(x,y,color,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,spd=2+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,color});}}
-function updateParticles(){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life-=0.04;if(p.life<=0)particles.splice(i,1);}}
-function drawParticles(){particles.forEach(p=>{ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,4*p.life,0,Math.PI*2);ctx.fill();ctx.restore();});}
-
-function endSim(success){
-  simRunning=false;balls=[];if(rafId)cancelAnimationFrame(rafId);rafId=null;
-  document.getElementById('startBtn').textContent='▶ スタート';document.getElementById('startBtn').classList.remove('stop');
+function resize() {
+  // Stop sim on resize to avoid coordinate mismatch
+  if (simRunning) stopSim();
+  DPR = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+  const rect = canvas.getBoundingClientRect();
+  W = rect.width  || window.innerWidth;
+  H = rect.height || (window.innerHeight - document.getElementById('toolbar').offsetHeight);
+  canvas.width  = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  // All drawing uses CSS-pixel coordinates; DPR scale is applied here
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  goalPos = goalForLevel(currentLevel);
   draw();
-  if(success){const isLast=currentLevel>=LEVELS.length-1;document.getElementById('goalSub').textContent=`Lv.${currentLevel+1} クリア！🎊`;document.getElementById('goalNext').textContent=isLast?'全レベル制覇！':`次 → Lv.${currentLevel+2}「${LEVELS[currentLevel+1].label}」`;document.getElementById('goalBtn').textContent=isLast?'🏆 フィニッシュ！':'次のレベルへ ▶';document.getElementById('goalOverlay').classList.add('show');}
-  else document.getElementById('failOverlay').classList.add('show');
+}
+window.addEventListener('resize', () => requestAnimationFrame(resize));
+
+// ─── Levels ────────────────────────────────────────────────────
+const LEVELS = [
+  {rx:0.85, ry:0.85, label:'右下'},   {rx:0.5,  ry:0.1,  label:'上中央'},
+  {rx:0.1,  ry:0.85, label:'左下'},   {rx:0.85, ry:0.1,  label:'右上'},
+  {rx:0.1,  ry:0.5,  label:'左中央'}, {rx:0.5,  ry:0.85, label:'真下中央'},
+  {rx:0.5,  ry:0.5,  label:'中央'},   {rx:0.85, ry:0.5,  label:'右中央'},
+];
+let currentLevel = 0;
+function goalForLevel(lv) {
+  const d = LEVELS[lv];
+  return { x: Math.round(W * d.rx), y: Math.round(H * d.ry) };
+}
+function updateLevelUI() {
+  document.getElementById('lvNum').textContent   = currentLevel + 1;
+  document.getElementById('lvLabel').textContent = LEVELS[currentLevel]?.label || '';
 }
 
-function draw(){
-  ctx.clearRect(0,0,W,H);
-  const hue=(currentLevel*30)%360;
-  const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,`hsl(${hue},40%,7%)`);bg.addColorStop(1,`hsl(${(hue+30)%360},30%,11%)`);
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,0.025)';ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  objects.forEach(o=>drawObj(o));
-  if(dragging&&dp1&&dp2&&!simRunning){ctx.globalAlpha=0.45;drawObj(previewObj(tool,dp1,dp2));ctx.globalAlpha=1;}
-  drawGoal();
-  if(!simRunning)drawStart();
-  updateParticles();drawParticles();
-  balls.forEach(b=>drawBall(b.x,b.y,b.r));
+// ─── State ─────────────────────────────────────────────────────
+let tool     = 'ramp';
+let objects  = [];
+let startPos = {x:100, y:80};
+let goalPos  = {x:500, y:400};
+let balls    = [], simRunning = false, rafId = null;
+let dragging = false, dp1 = null, dp2 = null;
+let particles = [], frameCount = 0;
+
+const BASE_BALL_R = 13;
+const GRAVITY     = 0.35;
+const FRICTION    = 0.993;
+const BOUNCE      = 0.42;
+const SUBSTEPS    = 6;
+const MAX_BALL_R  = 48;
+
+// ─── Tool management ───────────────────────────────────────────
+const TOOL_HINTS = {
+  ramp:     'ドラッグで坂道を配置',
+  platform: 'ドラッグで棚を配置',
+  spring:   'タップ/クリックでバネを設置',
+  spinner:  'タップ/クリックで回転板を設置',
+  tunnel:   'ドラッグでトンネル配置（くぐると玉が大きくなる！）',
+  wind:     'ドラッグで風エリアと向きを指定',
+  setstart: 'タップで出発点を移動',
+  erase:    'タップでパーツを削除',
+};
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('.tbtn[id^=t_]').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('t_' + t);
+  if (el) el.classList.add('active');
+  const hintEl = document.getElementById('hint');
+  if (hintEl) hintEl.textContent = TOOL_HINTS[t] || '';
+  setSubHint(TOOL_HINTS[t] || '', 2000);
+  canvas.style.cursor =
+    t === 'erase'    ? 'not-allowed' :
+    t === 'setstart' ? 'cell'        : 'crosshair';
 }
 
-function drawObj(o){
-  if(!o)return;
-  ctx.save();
-  if(o.type==='ramp'){
-    ctx.strokeStyle='#e6a820';ctx.lineWidth=10;ctx.lineCap='round';ctx.shadowColor='rgba(230,168,32,0.5)';ctx.shadowBlur=8;
-    ctx.beginPath();ctx.moveTo(o.x1,o.y1);ctx.lineTo(o.x2,o.y2);ctx.stroke();
-    ctx.shadowBlur=0;ctx.strokeStyle='#ffd166';ctx.lineWidth=3;ctx.stroke();
-  }else if(o.type==='platform'){
-    ctx.strokeStyle='#4fc3f7';ctx.lineWidth=10;ctx.lineCap='round';ctx.shadowColor='rgba(79,195,247,0.4)';ctx.shadowBlur=8;
-    ctx.beginPath();ctx.moveTo(o.x1,o.y1);ctx.lineTo(o.x2,o.y1);ctx.stroke();
-    ctx.shadowBlur=0;ctx.strokeStyle='#b3e5fc';ctx.lineWidth=3;ctx.stroke();
-    ctx.strokeStyle='rgba(79,195,247,0.35)';ctx.lineWidth=2;ctx.setLineDash([4,4]);
-    const n=Math.max(2,Math.floor(Math.abs(o.x2-o.x1)/50));
-    for(let i=0;i<=n;i++){const lx=o.x1+(o.x2-o.x1)*i/n;ctx.beginPath();ctx.moveTo(lx,o.y1+5);ctx.lineTo(lx,o.y1+20);ctx.stroke();}
-    ctx.setLineDash([]);
-  }else if(o.type==='spring'){
-    ctx.translate(o.x,o.y);ctx.strokeStyle='#a29bfe';ctx.lineWidth=3;ctx.lineCap='round';ctx.shadowColor='rgba(162,155,254,0.6)';ctx.shadowBlur=8;
-    ctx.beginPath();ctx.moveTo(0,5);for(let i=0;i<=10;i++){const t=i/10;ctx.lineTo(t%0.2<0.1?-14:14,5-t*40);}ctx.stroke();
-    ctx.shadowBlur=0;ctx.fillStyle='#6c5ce7';ctx.fillRect(-16,5,32,8);
-  }else if(o.type==='spinner'){
-    ctx.translate(o.x,o.y);ctx.rotate(frameCount*0.05);
-    ctx.shadowColor='rgba(116,185,255,0.7)';ctx.shadowBlur=12;ctx.strokeStyle='#74b9ff';ctx.lineWidth=4;
-    ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.stroke();
-    for(let i=0;i<4;i++){const a=i*Math.PI/2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*22,Math.sin(a)*22);ctx.stroke();}
-    ctx.shadowBlur=0;ctx.fillStyle='#0984e3';ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);ctx.fill();
-  }else if(o.type==='tunnel'){
-    const tx1=Math.min(o.x1,o.x2),tx2=Math.max(o.x1,o.x2),ty=o.y,th=o.h||30;
-    const now=Date.now()/400;
-    // トンネル本体（上下の壁）
-    ctx.shadowColor='rgba(162,155,254,0.5)';ctx.shadowBlur=10;
-    ctx.strokeStyle='#a29bfe';ctx.lineWidth=8;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(tx1,ty-th);ctx.lineTo(tx2,ty-th);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(tx1,ty+th);ctx.lineTo(tx2,ty+th);ctx.stroke();
-    ctx.shadowBlur=0;
-    // 左右の入口
-    ctx.strokeStyle='#6c5ce7';ctx.lineWidth=4;
-    ctx.beginPath();ctx.moveTo(tx1,ty-th);ctx.lineTo(tx1,ty+th);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(tx2,ty-th);ctx.lineTo(tx2,ty+th);ctx.stroke();
-    // 内部の虹色グラデ（大きくなる演出）
-    const grd=ctx.createLinearGradient(tx1,0,tx2,0);
-    grd.addColorStop(0,'rgba(108,92,231,0.08)');
-    grd.addColorStop(0.5,'rgba(253,121,168,0.15)');
-    grd.addColorStop(1,'rgba(253,203,110,0.08)');
-    ctx.fillStyle=grd;ctx.fillRect(tx1,ty-th+4,tx2-tx1,th*2-8);
-    // ✨アニメーションスパークル
-    for(let i=0;i<3;i++){
-      const px=tx1+(tx2-tx1)*((now*0.4+i*0.33)%1);
-      const py=ty+Math.sin(now*2+i)*8;
-      const alpha=0.5+0.3*Math.sin(now*3+i);
-      ctx.globalAlpha=alpha;ctx.fillStyle='#ffd166';
-      ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+// ─── Level flow ────────────────────────────────────────────────
+function nextLevel() {
+  document.getElementById('goalOverlay').classList.remove('show');
+  currentLevel++;
+  if (currentLevel >= LEVELS.length) {
+    document.getElementById('clearOverlay').classList.add('show');
+    return;
+  }
+  flashScreen(() => {
+    objects = [];
+    goalPos = goalForLevel(currentLevel);
+    updateLevelUI();
+    draw();
+  });
+}
+function restartAll() {
+  document.getElementById('clearOverlay').classList.remove('show');
+  currentLevel = 0; objects = [];
+  goalPos = goalForLevel(0);
+  updateLevelUI(); draw();
+}
+function closeFail() {
+  document.getElementById('failOverlay').classList.remove('show'); draw();
+}
+
+// ─── Simulation ────────────────────────────────────────────────
+function toggleSim() { simRunning ? stopSim() : startSim(); }
+function startSim() {
+  const count = parseInt(document.getElementById('ballCount').value) || 1;
+  balls = [];
+  for (let i = 0; i < count; i++)
+    balls.push({ x:startPos.x, y:startPos.y - i*(BASE_BALL_R*2+4), vx:1.5, vy:0, r:BASE_BALL_R });
+  simRunning = true;
+  document.getElementById('startBtn').textContent = '⏹ STOP';
+  document.getElementById('startBtn').classList.add('stop');
+  loop();
+}
+function stopSim() {
+  simRunning = false; balls = [];
+  if (rafId) cancelAnimationFrame(rafId); rafId = null;
+  document.getElementById('startBtn').textContent = '▶ GO';
+  document.getElementById('startBtn').classList.remove('stop');
+  draw();
+}
+function clearAll() { stopSim(); objects = []; draw(); }
+
+function loop() {
+  if (!simRunning) return;
+  frameCount++;
+  updateAll();
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+// ─── Physics ───────────────────────────────────────────────────
+function updateAll() {
+  let anyGoal = false;
+  for (let bi = balls.length - 1; bi >= 0; bi--) {
+    const b = balls[bi]; if (!b) continue;
+    for (let step = 0; step < SUBSTEPS; step++) {
+      const dt = 1 / SUBSTEPS;
+      b.vy += GRAVITY * dt;
+      b.vx *= Math.pow(FRICTION, dt);
+      b.vy *= Math.pow(FRICTION, dt);
+      b.x  += b.vx * dt;
+      b.y  += b.vy * dt;
+
+      if (b.x - b.r < 0) { b.x = b.r;     b.vx =  Math.abs(b.vx) * BOUNCE; }
+      if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * BOUNCE; }
+      if (b.y > H + 80)  { balls.splice(bi, 1); break; }
+
+      for (const obj of objects) {
+        if      (obj.type === 'ramp')     collideSegR(b, obj.x1, obj.y1, obj.x2, obj.y2, b.r);
+        else if (obj.type === 'platform') collideSegR(b, obj.x1, obj.y1, obj.x2, obj.y1, b.r);
+        else if (obj.type === 'spring')   collideSpring(b, obj.x, obj.y);
+        else if (obj.type === 'spinner')  collideSpinner(b, obj);
+        else if (obj.type === 'tunnel')   collideTunnel(b, obj);
+        else if (obj.type === 'wind')     applyWind(b, obj);
+      }
+
+      const goalR = 30 + Math.max(0, b.r - BASE_BALL_R) * 0.5;
+      const dx = b.x - goalPos.x, dy = b.y - goalPos.y;
+      if (dx*dx + dy*dy < goalR*goalR) { anyGoal = true; break; }
     }
-    ctx.globalAlpha=1;
-    // ラベル
-    ctx.fillStyle='rgba(162,155,254,0.8)';ctx.font='bold 10px Arial';ctx.textAlign='center';
-    ctx.fillText('BIG!!',(tx1+tx2)/2,ty-th-6);
-  }else if(o.type==='wind'){
-    const x1=Math.min(o.x1,o.x2),y1=Math.min(o.y1,o.y2),x2=Math.max(o.x1,o.x2),y2=Math.max(o.y1,o.y2),cx=(x1+x2)/2,cy=(y1+y2)/2;
-    const now2=Date.now()/400;
-    ctx.fillStyle='rgba(116,185,255,0.06)';ctx.fillRect(x1,y1,x2-x1,y2-y1);
-    ctx.strokeStyle='rgba(116,185,255,0.3)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.strokeRect(x1,y1,x2-x1,y2-y1);ctx.setLineDash([]);
-    const len=Math.sqrt(o.fx*o.fx+o.fy*o.fy);
-    if(len>0){const ux=o.fx/len,uy=o.fy/len;
-      for(let i=0;i<3;i++){const phase=(now2+i*0.7)%1;const ax=x1+(x2-x1)*(0.2+ux*0.6*phase);const ay=y1+(y2-y1)*(0.2+uy*0.6*phase);const alpha=Math.sin(phase*Math.PI)*0.7;
-        ctx.save();ctx.globalAlpha=alpha;ctx.translate(ax,ay);ctx.rotate(Math.atan2(o.fy,o.fx));ctx.fillStyle='#74b9ff';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-8,-7);ctx.lineTo(-8,7);ctx.closePath();ctx.fill();ctx.restore();}}
-    ctx.fillStyle='rgba(116,185,255,0.7)';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('💨',cx,cy+5);
+  }
+  if (anyGoal)            { endSim(true);  return; }
+  if (balls.length === 0)   endSim(false);
+}
+
+function collideSegR(b, x1, y1, x2, y2, R) {
+  const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 1) return;
+  const ux = dx/len, uy = dy/len;
+  let nx = -uy, ny = ux;
+  if (ny > 0) { nx = -nx; ny = -ny; }
+  const bx = b.x-x1, by = b.y-y1, t = bx*ux + by*uy;
+  if (t < -R || t > len+R) return;
+  const tc = Math.max(0, Math.min(len, t));
+  const cx = x1+tc*ux, cy = y1+tc*uy;
+  const ex = b.x-cx, ey = b.y-cy, ed = Math.sqrt(ex*ex+ey*ey);
+  if (ed < R && ed > 0.001) {
+    const pen = R-ed, enx = ex/ed, eny = ey/ed;
+    if (enx*nx + eny*ny > 0) {
+      b.x += enx*pen; b.y += eny*pen;
+      const vn = b.vx*enx + b.vy*eny;
+      if (vn < 0) {
+        b.vx -= (1+BOUNCE)*vn*enx;
+        b.vy -= (1+BOUNCE)*vn*eny;
+        const vt = b.vx*ux + b.vy*uy;
+        b.vx -= 0.04*vt*ux;
+        b.vy -= 0.04*vt*uy;
+      }
+    }
+  }
+}
+function collideSpring(b, sx, sy) {
+  const topY = sy - 28;
+  const cx = Math.max(sx-16, Math.min(sx+16, b.x));
+  const dx = b.x-cx, dy = b.y-topY;
+  if (dx*dx + dy*dy < (b.r+6)*(b.r+6) && b.vy > -2) {
+    b.y = topY - b.r - 1; b.vy = -8.5;
+  }
+}
+function collideSpinner(b, obj) {
+  const dx = b.x-obj.x, dy = b.y-obj.y, dist = Math.sqrt(dx*dx+dy*dy), SR = obj.r||22;
+  if (dist < b.r+SR && dist > 0.001) {
+    const nx = dx/dist, ny = dy/dist;
+    b.x = obj.x + nx*(b.r+SR+1);
+    b.y = obj.y + ny*(b.r+SR+1);
+    const spd = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+    b.vx = -ny*spd*1.4;
+    b.vy =  nx*spd*1.4;
+    if (b.vy > 0) b.vy = -Math.abs(b.vy);
+  }
+}
+function collideTunnel(b, obj) {
+  const tx1 = Math.min(obj.x1,obj.x2), tx2 = Math.max(obj.x1,obj.x2);
+  const ty = obj.y, BASE_TH = 30;
+  const inX = b.x > tx1 && b.x < tx2;
+  const inY = Math.abs(b.y - ty) < BASE_TH + b.r + 4;
+  if (inX && inY) {
+    b.y   += (ty - b.y) * 0.08;
+    b.vy  *= 0.85;
+    if (Math.abs(b.vx) < 1.0) b.vx = (b.vx >= 0 ? 1 : -1) * 1.5;
+    if (b.r < MAX_BALL_R) {
+      b.r = Math.min(MAX_BALL_R, b.r + 0.2);
+      if (!isTouchDevice && Math.random() < 0.25) spawnParticles(b.x, b.y, '#a29bfe', 2);
+      if ( isTouchDevice && Math.random() < 0.10) spawnParticles(b.x, b.y, '#a29bfe', 1);
+    }
+  }
+}
+function applyWind(b, obj) {
+  const x1 = Math.min(obj.x1,obj.x2), y1 = Math.min(obj.y1,obj.y2);
+  const x2 = Math.max(obj.x1,obj.x2), y2 = Math.max(obj.y1,obj.y2);
+  if (b.x > x1 && b.x < x2 && b.y > y1 && b.y < y2) {
+    // Larger balls have more inertia → wind has less effect
+    const massScale = (BASE_BALL_R * BASE_BALL_R) / (b.r * b.r);
+    b.vx += obj.fx * 0.15 * massScale;
+    b.vy += obj.fy * 0.15 * massScale;
+  }
+}
+
+// ─── Particles ─────────────────────────────────────────────────
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random()*Math.PI*2, spd = 2 + Math.random()*5;
+    particles.push({ x, y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, life:1, color });
+  }
+}
+function updateParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life -= 0.04;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4*p.life, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ─── End simulation ────────────────────────────────────────────
+function endSim(success) {
+  simRunning = false; balls = [];
+  if (rafId) cancelAnimationFrame(rafId); rafId = null;
+  document.getElementById('startBtn').textContent = '▶ GO';
+  document.getElementById('startBtn').classList.remove('stop');
+  draw();
+  if (success) {
+    vibrate([30, 50, 30]);
+    const isLast = currentLevel >= LEVELS.length - 1;
+    document.getElementById('goalSub').textContent  = `Lv.${currentLevel+1} クリア！🎊`;
+    document.getElementById('goalNext').textContent = isLast ? '全レベル制覇！' : `次 → Lv.${currentLevel+2}「${LEVELS[currentLevel+1].label}」`;
+    document.getElementById('goalBtn').textContent  = isLast ? '🏆 フィニッシュ！' : '次のレベルへ ▶';
+    document.getElementById('goalOverlay').classList.add('show');
+  } else {
+    vibrate(60);
+    document.getElementById('failOverlay').classList.add('show');
+  }
+}
+
+// ─── Drawing helpers ───────────────────────────────────────────
+function setShadow(color, blur) { ctx.shadowColor = color; ctx.shadowBlur = blur * SHADOW_MULT; }
+function clrShadow()            { ctx.shadowBlur = 0; }
+
+// ─── Draw ──────────────────────────────────────────────────────
+function draw() {
+  // Always re-apply DPR transform (canvas resize resets it)
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // Background gradient (hue shifts per level)
+  const hue = (currentLevel * 30) % 360;
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, `hsl(${hue},40%,7%)`);
+  bg.addColorStop(1, `hsl(${(hue+30)%360},30%,11%)`);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)'; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  objects.forEach(o => drawObj(o));
+
+  if (dragging && dp1 && dp2 && !simRunning) {
+    ctx.globalAlpha = 0.45;
+    drawObj(previewObj(tool, dp1, dp2));
+    ctx.globalAlpha = 1;
+  }
+
+  drawGoal();
+  if (!simRunning) drawStart();
+  updateParticles();
+  drawParticles();
+  balls.forEach(b => drawBall(b.x, b.y, b.r));
+}
+
+function drawObj(o) {
+  if (!o) return;
+  ctx.save();
+
+  if (o.type === 'ramp') {
+    setShadow('rgba(230,168,32,0.5)', 8);
+    ctx.strokeStyle = '#e6a820'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(o.x1,o.y1); ctx.lineTo(o.x2,o.y2); ctx.stroke();
+    clrShadow(); ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.stroke();
+
+  } else if (o.type === 'platform') {
+    setShadow('rgba(79,195,247,0.4)', 8);
+    ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(o.x1,o.y1); ctx.lineTo(o.x2,o.y1); ctx.stroke();
+    clrShadow(); ctx.strokeStyle = '#b3e5fc'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = 'rgba(79,195,247,0.35)'; ctx.lineWidth = 2; ctx.setLineDash([4,4]);
+    const n = Math.max(2, Math.floor(Math.abs(o.x2-o.x1)/50));
+    for (let i = 0; i <= n; i++) {
+      const lx = o.x1 + (o.x2-o.x1)*i/n;
+      ctx.beginPath(); ctx.moveTo(lx, o.y1+5); ctx.lineTo(lx, o.y1+20); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+  } else if (o.type === 'spring') {
+    ctx.translate(o.x, o.y);
+    setShadow('rgba(162,155,254,0.6)', 8);
+    ctx.strokeStyle = '#a29bfe'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 5);
+    for (let i = 0; i <= 10; i++) { const t = i/10; ctx.lineTo(t%0.2<0.1?-14:14, 5-t*40); }
+    ctx.stroke();
+    clrShadow(); ctx.fillStyle = '#6c5ce7'; ctx.fillRect(-16, 5, 32, 8);
+
+  } else if (o.type === 'spinner') {
+    ctx.translate(o.x, o.y); ctx.rotate(frameCount * 0.05);
+    setShadow('rgba(116,185,255,0.7)', 12);
+    ctx.strokeStyle = '#74b9ff'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const a = i*Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*22, Math.sin(a)*22); ctx.stroke();
+    }
+    clrShadow(); ctx.fillStyle = '#0984e3';
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+
+  } else if (o.type === 'tunnel') {
+    const tx1 = Math.min(o.x1,o.x2), tx2 = Math.max(o.x1,o.x2), ty = o.y, th = o.h||30;
+    setShadow('rgba(162,155,254,0.5)', 10);
+    ctx.strokeStyle = '#a29bfe'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tx1,ty-th); ctx.lineTo(tx2,ty-th); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx1,ty+th); ctx.lineTo(tx2,ty+th); ctx.stroke();
+    clrShadow();
+    ctx.strokeStyle = '#6c5ce7'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(tx1,ty-th); ctx.lineTo(tx1,ty+th); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx2,ty-th); ctx.lineTo(tx2,ty+th); ctx.stroke();
+    const grd = ctx.createLinearGradient(tx1,0,tx2,0);
+    grd.addColorStop(0,   'rgba(108,92,231,0.08)');
+    grd.addColorStop(0.5, 'rgba(253,121,168,0.15)');
+    grd.addColorStop(1,   'rgba(253,203,110,0.08)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(tx1, ty-th+4, tx2-tx1, th*2-8);
+    // Animated sparkles (skipped on touch for perf)
+    if (!isTouchDevice) {
+      const now = Date.now()/400;
+      for (let i = 0; i < 3; i++) {
+        const px = tx1+(tx2-tx1)*((now*0.4+i*0.33)%1);
+        const py = ty+Math.sin(now*2+i)*8;
+        ctx.globalAlpha = 0.5+0.3*Math.sin(now*3+i);
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = 'rgba(162,155,254,0.85)'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('BIG!!', (tx1+tx2)/2, ty-th-6);
+
+  } else if (o.type === 'wind') {
+    const x1 = Math.min(o.x1,o.x2), y1 = Math.min(o.y1,o.y2);
+    const x2 = Math.max(o.x1,o.x2), y2 = Math.max(o.y1,o.y2);
+    const cx = (x1+x2)/2, cy = (y1+y2)/2, now2 = Date.now()/400;
+    ctx.fillStyle = 'rgba(116,185,255,0.06)'; ctx.fillRect(x1,y1,x2-x1,y2-y1);
+    ctx.strokeStyle = 'rgba(116,185,255,0.3)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,4]); ctx.strokeRect(x1,y1,x2-x1,y2-y1); ctx.setLineDash([]);
+    const len = Math.sqrt(o.fx*o.fx+o.fy*o.fy);
+    if (len > 0) {
+      const ux = o.fx/len, uy = o.fy/len;
+      for (let i = 0; i < 3; i++) {
+        const phase = (now2+i*0.7)%1;
+        const ax = x1+(x2-x1)*(0.2+ux*0.6*phase);
+        const ay = y1+(y2-y1)*(0.2+uy*0.6*phase);
+        ctx.save(); ctx.globalAlpha = Math.sin(phase*Math.PI)*0.7;
+        ctx.translate(ax, ay); ctx.rotate(Math.atan2(o.fy, o.fx));
+        ctx.fillStyle = '#74b9ff';
+        ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-8,-7); ctx.lineTo(-8,7); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
+    ctx.fillStyle = 'rgba(116,185,255,0.7)'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('💨', cx, cy+5);
   }
   ctx.restore();
 }
 
-function drawStart(){const x=startPos.x,y=startPos.y;ctx.save();ctx.shadowColor='rgba(255,71,87,0.7)';ctx.shadowBlur=14;ctx.fillStyle='#ff4757';ctx.beginPath();ctx.arc(x,y,BASE_BALL_R,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#ff4757';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('START',x,y-18);ctx.restore();}
-function drawGoal(){const x=goalPos.x,y=goalPos.y,pulse=1+0.07*Math.sin(Date.now()/280);ctx.save();const g=ctx.createRadialGradient(x,y,4,x,y,40*pulse);g.addColorStop(0,'rgba(0,200,83,0.45)');g.addColorStop(1,'rgba(0,200,83,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,40*pulse,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#00b894';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y+22);ctx.lineTo(x,y-36);ctx.stroke();ctx.fillStyle='#e94560';ctx.beginPath();ctx.moveTo(x,y-36);ctx.lineTo(x+22,y-28);ctx.lineTo(x,y-20);ctx.closePath();ctx.fill();ctx.fillStyle='#ffd166';drawStar(x,y+5,5,12*pulse,5);ctx.fillStyle='#00b894';ctx.font='bold 11px Arial';ctx.textAlign='center';ctx.fillText(`Lv.${currentLevel+1}`,x,y+38);ctx.restore();}
-function drawStar(cx,cy,n,r1,r2){ctx.beginPath();for(let i=0;i<n*2;i++){const r=i%2===0?r1:r2,a=i*Math.PI/n-Math.PI/2;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();ctx.fill();}
-function drawBall(x,y,r){ctx.save();ctx.shadowColor='rgba(255,71,87,0.7)';ctx.shadowBlur=18;const g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,2,x,y,r);g.addColorStop(0,'#ff9f9f');g.addColorStop(0.5,'#ff4757');g.addColorStop(1,'#c0392b');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(x-r*0.33,y-r*0.33,r*0.3,0,Math.PI*2);ctx.fill();ctx.restore();}
-
-function previewObj(t,p1,p2){
-  if(!p1||!p2)return null;
-  if(t==='ramp')     return{type:'ramp',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y};
-  if(t==='platform') return{type:'platform',x1:Math.min(p1.x,p2.x),y1:p1.y,x2:Math.max(p1.x,p2.x),y2:p1.y};
-  if(t==='tunnel')   return{type:'tunnel',x1:p1.x,x2:p2.x,y:(p1.y+p2.y)/2,h:30};
-  if(t==='wind'){const dx=p2.x-p1.x,dy=p2.y-p1.y,len=Math.sqrt(dx*dx+dy*dy)||1;return{type:'wind',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,fx:dx/len*3,fy:dy/len*3};}
-  return null;
+function drawStart() {
+  const { x, y } = startPos;
+  ctx.save();
+  setShadow('rgba(255,71,87,0.7)', 14);
+  ctx.fillStyle = '#ff4757';
+  ctx.beginPath(); ctx.arc(x, y, BASE_BALL_R, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  clrShadow();
+  ctx.fillStyle = '#ff4757'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+  ctx.fillText('START', x, y-18);
+  ctx.restore();
+}
+function drawGoal() {
+  const { x, y } = goalPos;
+  const pulse = 1 + 0.07*Math.sin(Date.now()/280);
+  ctx.save();
+  const g = ctx.createRadialGradient(x,y,4, x,y,40*pulse);
+  g.addColorStop(0, 'rgba(0,200,83,0.45)');
+  g.addColorStop(1, 'rgba(0,200,83,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, 40*pulse, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#00b894'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y+22); ctx.lineTo(x, y-36); ctx.stroke();
+  ctx.fillStyle = '#e94560';
+  ctx.beginPath(); ctx.moveTo(x, y-36); ctx.lineTo(x+22, y-28); ctx.lineTo(x, y-20); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd166'; drawStar(x, y+5, 5, 12*pulse, 5);
+  ctx.fillStyle = '#00b894'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+  ctx.fillText(`Lv.${currentLevel+1}`, x, y+38);
+  ctx.restore();
+}
+function drawStar(cx, cy, n, r1, r2) {
+  ctx.beginPath();
+  for (let i = 0; i < n*2; i++) {
+    const r = i%2===0 ? r1 : r2, a = i*Math.PI/n - Math.PI/2;
+    i===0 ? ctx.moveTo(cx+r*Math.cos(a), cy+r*Math.sin(a))
+          : ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
+  }
+  ctx.closePath(); ctx.fill();
+}
+function drawBall(x, y, r) {
+  ctx.save();
+  setShadow('rgba(255,71,87,0.7)', 18);
+  const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, 2, x, y, r);
+  g.addColorStop(0, '#ff9f9f'); g.addColorStop(0.5, '#ff4757'); g.addColorStop(1, '#c0392b');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.arc(x-r*0.33, y-r*0.33, r*0.3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
 }
 
-function hitTest(p){
-  for(let i=objects.length-1;i>=0;i--){
-    const o=objects[i];
-    if(['spring','spinner'].includes(o.type)){if((p.x-o.x)**2+(p.y-o.y)**2<900)return i;}
-    else if(o.type==='tunnel'){const tx1=Math.min(o.x1,o.x2),tx2=Math.max(o.x1,o.x2),th=o.h||30;if(p.x>tx1&&p.x<tx2&&p.y>o.y-th&&p.y<o.y+th)return i;}
-    else if(o.type==='wind'){const x1=Math.min(o.x1,o.x2),y1=Math.min(o.y1,o.y2),x2=Math.max(o.x1,o.x2),y2=Math.max(o.y1,o.y2);if(p.x>x1&&p.x<x2&&p.y>y1&&p.y<y2)return i;}
-    else{const y2=o.type==='platform'?o.y1:o.y2,dx=o.x2-o.x1,dy=y2-o.y1,len=Math.sqrt(dx*dx+dy*dy);if(len<1)continue;const t=((p.x-o.x1)*dx+(p.y-o.y1)*dy)/(len*len),tc=Math.max(0,Math.min(1,t)),px=o.x1+tc*dx,py=o.y1+tc*dy;if((p.x-px)**2+(p.y-py)**2<196)return i;}
+// ─── Object helpers ────────────────────────────────────────────
+function previewObj(t, p1, p2) {
+  if (!p1 || !p2) return null;
+  if (t === 'ramp')     return { type:'ramp',     x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y };
+  if (t === 'platform') return { type:'platform', x1:Math.min(p1.x,p2.x), y1:p1.y, x2:Math.max(p1.x,p2.x) };
+  if (t === 'tunnel')   return { type:'tunnel',   x1:p1.x, x2:p2.x, y:(p1.y+p2.y)/2, h:30 };
+  if (t === 'wind') {
+    const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.sqrt(dx*dx+dy*dy)||1;
+    return { type:'wind', x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, fx:dx/len*3, fy:dy/len*3 };
+  }
+  return null;
+}
+function hitTest(p) {
+  for (let i = objects.length-1; i >= 0; i--) {
+    const o = objects[i];
+    if (['spring','spinner'].includes(o.type)) {
+      if ((p.x-o.x)**2+(p.y-o.y)**2 < 900) return i;
+    } else if (o.type === 'tunnel') {
+      const tx1=Math.min(o.x1,o.x2), tx2=Math.max(o.x1,o.x2), th=o.h||30;
+      if (p.x>tx1&&p.x<tx2&&p.y>o.y-th&&p.y<o.y+th) return i;
+    } else if (o.type === 'wind') {
+      const x1=Math.min(o.x1,o.x2),y1=Math.min(o.y1,o.y2),x2=Math.max(o.x1,o.x2),y2=Math.max(o.y1,o.y2);
+      if (p.x>x1&&p.x<x2&&p.y>y1&&p.y<y2) return i;
+    } else {
+      const y2o = o.type==='platform' ? o.y1 : o.y2;
+      const dx = o.x2-o.x1, dy = y2o-o.y1, len = Math.sqrt(dx*dx+dy*dy);
+      if (len<1) continue;
+      const t  = ((p.x-o.x1)*dx+(p.y-o.y1)*dy)/(len*len);
+      const tc = Math.max(0,Math.min(1,t));
+      const px = o.x1+tc*dx, py = o.y1+tc*dy;
+      if ((p.x-px)**2+(p.y-py)**2<196) return i;
+    }
   }
   return -1;
 }
 
-function getXY(e){const r=canvas.getBoundingClientRect(),src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};}
-
-function onDown(e){
-  if(simRunning)return;const p=getXY(e);
-  if(tool==='erase'){const i=hitTest(p);if(i>=0){objects.splice(i,1);draw();}return;}
-  if(tool==='spring'){objects.push({type:'spring',x:p.x,y:p.y});draw();return;}
-  if(tool==='spinner'){objects.push({type:'spinner',x:p.x,y:p.y,r:22});draw();return;}
-  dragging=true;dp1=p;dp2=p;
+// ─── Input ─────────────────────────────────────────────────────
+function getXY(e) {
+  const r = canvas.getBoundingClientRect();
+  // NOTE: On touchend, e.touches is an empty TouchList (truthy but length=0).
+  // We must check .length > 0, otherwise fall back to changedTouches.
+  const src = (e.touches && e.touches.length > 0)
+    ? e.touches[0]
+    : (e.changedTouches && e.changedTouches.length > 0)
+      ? e.changedTouches[0]
+      : e;
+  return { x: src.clientX - r.left, y: src.clientY - r.top };
 }
-function onMove(e){if(simRunning||!dragging)return;dp2=getXY(e);draw();}
-function onUp(e){
-  if(!dragging)return;dragging=false;dp2=getXY(e);
-  const dx=dp2.x-dp1.x,dy=dp2.y-dp1.y;
-  if(dx*dx+dy*dy>144){
-    if(tool==='wind'){const len=Math.sqrt(dx*dx+dy*dy)||1;objects.push({type:'wind',x1:dp1.x,y1:dp1.y,x2:dp2.x,y2:dp2.y,fx:dx/len*3,fy:dy/len*3});}
-    else if(tool==='tunnel'){objects.push({type:'tunnel',x1:dp1.x,x2:dp2.x,y:(dp1.y+dp2.y)/2,h:30});}
-    else{const o=previewObj(tool,dp1,dp2);if(o)objects.push(o);}
+
+function onDown(e) {
+  if (simRunning) return;
+  const p = getXY(e);
+  if (tool === 'setstart') {
+    startPos = { x:p.x, y:p.y };
+    vibrate(20); setSubHint('📍 出発点を設定！', 1200); draw(); return;
   }
-  dp1=null;dp2=null;draw();
+  if (tool === 'erase') {
+    const i = hitTest(p);
+    if (i >= 0) { objects.splice(i, 1); vibrate(15); draw(); }
+    return;
+  }
+  if (tool === 'spring')  { objects.push({type:'spring',  x:p.x, y:p.y});       vibrate(15); draw(); return; }
+  if (tool === 'spinner') { objects.push({type:'spinner', x:p.x, y:p.y, r:22}); vibrate(15); draw(); return; }
+  dragging = true; dp1 = p; dp2 = p;
 }
-canvas.addEventListener('mousedown',onDown);
-canvas.addEventListener('mousemove',onMove);
-canvas.addEventListener('mouseup',onUp);
-canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(simRunning)return;startPos=getXY(e);draw();});
-canvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e);},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
-canvas.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
-
-function animLoop(){if(!simRunning)draw();requestAnimationFrame(animLoop);}
-
-function init(){
-  resize();currentLevel=0;goalPos=goalForLevel(0);updateLevelUI();
-  objects=[{type:'ramp',x1:60,y1:100,x2:240,y2:200},{type:'platform',x1:240,y1:250,x2:420,y2:250},{type:'ramp',x1:400,y1:250,x2:560,y2:360}];
-  startPos={x:80,y:70};draw();animLoop();
+function onMove(e) {
+  if (simRunning || !dragging) return;
+  dp2 = getXY(e); draw();
 }
-setTimeout(init,80);
+function onUp(e) {
+  if (!dragging) return;
+  dragging = false; dp2 = getXY(e);
+  const dx = dp2.x-dp1.x, dy = dp2.y-dp1.y;
+  if (dx*dx+dy*dy > 144) {
+    if (tool === 'wind') {
+      const len = Math.sqrt(dx*dx+dy*dy)||1;
+      objects.push({type:'wind', x1:dp1.x, y1:dp1.y, x2:dp2.x, y2:dp2.y, fx:dx/len*3, fy:dy/len*3});
+    } else if (tool === 'tunnel') {
+      objects.push({type:'tunnel', x1:dp1.x, x2:dp2.x, y:(dp1.y+dp2.y)/2, h:30});
+    } else {
+      const o = previewObj(tool, dp1, dp2);
+      if (o) objects.push(o);
+    }
+    vibrate(10);
+  }
+  dp1 = null; dp2 = null; draw();
+}
+
+// Mouse events
+canvas.addEventListener('mousedown',    onDown);
+canvas.addEventListener('mousemove',    onMove);
+canvas.addEventListener('mouseup',      onUp);
+canvas.addEventListener('contextmenu',  e => {
+  e.preventDefault();
+  if (simRunning) return;
+  startPos = getXY(e);
+  setSubHint('📍 出発点を移動', 1200); draw();
+});
+
+// Touch events (passive:false needed to call preventDefault)
+canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, {passive:false});
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e); }, {passive:false});
+canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, {passive:false});
+canvas.addEventListener('touchcancel',e => { dragging=false; dp1=null; dp2=null; }, {passive:false});
+
+// ─── Idle animation loop ────────────────────────────────────────
+// Keeps goal pulsing & spinner spinning when sim is NOT running
+function idleLoop() {
+  if (!simRunning) draw();
+  requestAnimationFrame(idleLoop);
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+function init() {
+  resize();
+  currentLevel = 0;
+  goalPos   = goalForLevel(0);
+  startPos  = {x:80, y:70};
+  updateLevelUI();
+  objects = [
+    {type:'ramp',     x1:60,  y1:100, x2:240, y2:200},
+    {type:'platform', x1:240, y1:250, x2:420, y2:250},
+    {type:'ramp',     x1:400, y1:250, x2:560, y2:360},
+  ];
+  draw();
+  idleLoop();
+}
+setTimeout(init, 80);
 </script>
 </body>
 </html>
-
